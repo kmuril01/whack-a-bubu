@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Whack-a-Bubu</title>
+<style>
+  body {
+    background-color: #fff7f0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    text-align: center;
+    margin: 0;
+    padding: 24px 0 40px;
+  }
+  h1 { color: #ff7f7f; margin: 8px 0 0; font-weight: 800; letter-spacing: 0.5px;}
+  #sub { color: #8b6f68; margin: 4px 0 16px; font-size: 14px;}
+  #score, #timer { font-size: 18px; display: inline-block; margin: 6px 10px; padding: 6px 10px; background: #ffe7dc; border-radius: 10px; }
+  #controls { margin-top: 8px; }
+  button {
+    border: 0;
+    padding: 10px 16px;
+    border-radius: 12px;
+    background: #ffb8c6;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #game-wrap { display: flex; justify-content: center; align-items: center; }
+  #game {
+    display: grid;
+    grid-template-columns: repeat(3, 120px);
+    grid-gap: 14px;
+    justify-content: center;
+    margin-top: 16px;
+  }
+  .hole {
+    width: 120px;
+    height: 120px;
+    background: #e9f6ea;
+    border-radius: 16px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 -10px #cfe8d2, 0 2px 0 rgba(0,0,0,0.04);
+  }
+  .lip {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 30px;
+    background: #d3eed7;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    box-shadow: inset 0 8px rgba(255,255,255,0.5);
+    z-index: 3;
+  }
+
+  /* The pop-up “Bubu” container */
+  .bubu {
+    width: 84px;
+    height: 84px;
+    border-radius: 24px;
+    position: absolute;
+    bottom: -100px;
+    left: 18px;
+    transition: bottom 0.18s ease-out, transform 0.08s;
+    cursor: pointer;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.08);
+    background: transparent;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+  }
+  /* The actual image */
+  .bubu img.art {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* keeps aspect */
+    pointer-events: none; /* clicks go to the .bubu */
+    user-select: none;
+  }
+
+  /* Golden Bubu gets a glow */
+  .sparkle {
+    box-shadow: 0 0 18px rgba(255,215,0,0.85), 0 6px 0 rgba(0,0,0,0.08);
+    position: absolute;
+  }
+
+  .sparkles {
+    position: absolute; inset: -6px; pointer-events: none; z-index: 2;
+    background-image:
+      radial-gradient(rgba(255,255,255,0.9) 2px, transparent 3px),
+      radial-gradient(rgba(255,255,255,0.6) 1.5px, transparent 3px);
+    background-size: 18px 18px, 28px 28px;
+    background-position: 0 0, 8px 8px;
+    opacity: 0; transition: opacity 0.12s;
+  }
+  .sparkle.up + .sparkles { opacity: 1; }
+
+  .up { bottom: 20px; }
+  .hit { transform: scale(0.95) translateY(2px); }
+
+  #endcard {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 247, 240, 0.96);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+  }
+  #endcard .card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px 24px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+    max-width: 320px;
+  }
+</style>
+</head>
+<body>
+  <h1>Whack-a-Bubu 🐰</h1>
+  <div id="sub">Tap Bubu for +1 • Tap Golden Bubu for +5</div>
+  <div id="controls">
+    <span id="score">Score: 0</span>
+    <span id="timer">Time: 30</span>
+    <button id="restart">Restart</button>
+  </div>
+  <div id="game-wrap">
+    <div id="game" aria-label="Whack-a-Bubu grid"></div>
+  </div>
+
+  <div id="endcard" role="dialog" aria-modal="true" aria-labelledby="endtitle">
+    <div class="card">
+      <h2 id="endtitle">Time’s up!</h2>
+      <p id="finalscore">Final Score: 0</p>
+      <button id="playagain">Play again</button>
+    </div>
+  </div>
+
+<script>
+  const game = document.getElementById("game");
+  const scoreDisplay = document.getElementById("score");
+  const timerDisplay = document.getElementById("timer");
+  const restartBtn = document.getElementById("restart");
+  const endcard = document.getElementById("endcard");
+  const playagain = document.getElementById("playagain");
+
+  let score = 0;
+  let timeLeft = 30;
+  let holes = [];
+  let popInterval, timerInterval;
+
+  const POP_EVERY_MS = 800;
+  const NORMAL_VISIBLE_MS = 900;
+  const GOLD_VISIBLE_MS = 500;
+  const GOLD_CHANCE = 0.10;
+
+  // Image assets (add or remove as you like)
+  const NORMAL_IMAGES = [
+    "labubu1.png",
+    "labubu2.png",
+    "labubu3.png"
+  ];
+  const GOLD_IMAGE = "labubu-gold.png";
+
+  // Preload for snappy swaps
+  [...NORMAL_IMAGES, GOLD_IMAGE].forEach(src => {
+    const img = new Image();
+    img.src = src;
+  });
+
+  function initGrid() {
+    game.innerHTML = "";
+    holes = [];
+    for (let i = 0; i < 9; i++) {
+      const hole = document.createElement("div");
+      hole.className = "hole";
+
+      const bubu = document.createElement("div");
+      bubu.className = "bubu";
+      bubu.setAttribute("role","button");
+      bubu.setAttribute("aria-label","Bubu");
+
+      // The face image
+      const img = document.createElement("img");
+      img.className = "art";
+      img.alt = "Labubu";
+      img.src = randomNormalImg(); // default
+
+      const sparkles = document.createElement("div");
+      sparkles.className = "sparkles";
+
+      const lip = document.createElement("div");
+      lip.className = "lip";
+
+      bubu.addEventListener("pointerdown", () => {
+        if (!bubu.classList.contains("up")) return;
+        bubu.classList.add("hit");
+        if (bubu.classList.contains("sparkle")) {
+          score += 5;
+        } else {
+          score += 1;
+        }
+        scoreDisplay.textContent = "Score: " + score;
+        // quick hide after hit
+        setTimeout(() => {
+          bubu.classList.remove("up", "hit", "sparkle");
+        }, 80);
+      });
+
+      bubu.appendChild(img);
+      hole.appendChild(bubu);
+      hole.appendChild(sparkles);
+      hole.appendChild(lip);
+      game.appendChild(hole);
+      holes.push(bubu);
+    }
+  }
+
+  function randomNormalImg() {
+    const idx = Math.floor(Math.random() * NORMAL_IMAGES.length);
+    return NORMAL_IMAGES[idx];
+    }
+
+  function popOne() {
+    // clear previous ups to avoid overlap chaos
+    holes.forEach(b => {
+      b.classList.remove("up", "sparkle", "hit");
+    });
+
+    const index = Math.floor(Math.random() * holes.length);
+    const bubu = holes[index];
+    const img = bubu.querySelector("img.art");
+
+    const isGold = Math.random() < GOLD_CHANCE;
+    const visibleFor = isGold ? GOLD_VISIBLE_MS : NORMAL_VISIBLE_MS;
+
+    if (isGold) {
+      bubu.classList.add("sparkle");
+      img.src = GOLD_IMAGE;
+      img.alt = "Golden Labubu";
+    } else {
+      img.src = randomNormalImg();
+      img.alt = "Labubu";
+    }
+
+    bubu.classList.add("up");
+
+    setTimeout(() => {
+      bubu.classList.remove("up", "sparkle", "hit");
+    }, visibleFor);
+  }
+
+  function tickTimer() {
+    timeLeft--;
+    timerDisplay.textContent = "Time: " + timeLeft;
+    if (timeLeft <= 0) {
+      stopGame();
+      showEndcard();
+    }
+  }
+
+  function startGame() {
+    score = 0;
+    timeLeft = 30;
+    scoreDisplay.textContent = "Score: " + score;
+    timerDisplay.textContent = "Time: " + timeLeft;
+    endcard.style.display = "none";
+    clearInterval(popInterval);
+    clearInterval(timerInterval);
+    popInterval = setInterval(popOne, POP_EVERY_MS);
+    timerInterval = setInterval(tickTimer, 1000);
+  }
+
+  function stopGame() {
+    clearInterval(popInterval);
+    clearInterval(timerInterval);
+  }
+
+  function showEndcard() {
+    document.getElementById("finalscore").textContent = "Final Score: " + score;
+    endcard.style.display = "flex";
+  }
+
+  restartBtn.addEventListener("click", startGame);
+  playagain.addEventListener("click", startGame);
+
+  initGrid();
+  startGame();
+</script>
+</body>
+</html>
