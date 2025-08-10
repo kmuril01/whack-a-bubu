@@ -114,6 +114,9 @@
     box-shadow: 0 8px 30px rgba(0,0,0,0.08);
     max-width: 320px;
   }
+  #game.hide-lips .lip {
+    display: none;
+  }
 </style>
 </head>
 <body>
@@ -265,6 +268,7 @@
     scoreDisplay.textContent = "Score: " + score;
     timerDisplay.textContent = "Time: " + timeLeft;
     endcard.style.display = "none";
+    game.classList.remove("hide-lips"); // Remove class to show lips
     clearInterval(popInterval);
     clearInterval(timerInterval);
     popInterval = setInterval(popOne, POP_EVERY_MS);
@@ -279,6 +283,7 @@
   function showEndcard() {
     document.getElementById("finalscore").textContent = "Final Score: " + score;
     endcard.style.display = "flex";
+    game.classList.add("hide-lips"); // Add class to hide lips
   }
 
   restartBtn.addEventListener("click", startGame);
