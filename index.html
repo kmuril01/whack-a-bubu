@@ -12,7 +12,15 @@
     margin: 0;
     padding: 24px 0 40px;
   }
-  h1 { color: #ff7f7f; margin: 8px 0 0; font-weight: 800; letter-spacing: 0.5px;}
+h1 .labubu-logo{
+  height: 28px;           /* tweak: 24–36 looks good */
+  width: auto;
+  vertical-align: middle; /* aligns with the text */
+  margin-left: 8px;       /* a little spacing from the title */
+  user-select: none;
+  pointer-events: none;
+}
+
   #sub { color: #8b6f68; margin: 4px 0 16px; font-size: 14px;}
   #score, #timer { font-size: 18px; display: inline-block; margin: 6px 10px; padding: 6px 10px; background: #ffe7dc; border-radius: 10px; }
   #controls { margin-top: 8px; }
@@ -120,7 +128,7 @@
 </style>
 </head>
 <body>
-  <h1>Whack-a-Bubu 🐰</h1>
+  <h1>Whack-a-Bubu <img src="labubu1.png" alt="Labubu" class="labubu-logo"></h1>
   <div id="sub">Tap Bubu for +1 • Tap Golden Bubu for +5</div>
   <div id="controls">
     <span id="score">Score: 0</span>
