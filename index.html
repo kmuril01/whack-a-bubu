@@ -12,27 +12,24 @@
     margin: 0;
     padding: 24px 0 40px;
   }
-h1 .labubu-logo{
-  height: 28px;           /* tweak: 24–36 looks good */
-  width: auto;
-  vertical-align: middle; /* aligns with the text */
-  margin-left: 8px;       /* a little spacing from the title */
-  user-select: none;
-  pointer-events: none;
-}
+  h1 .labubu-logo{
+    height: 28px; width: auto; vertical-align: middle; margin-left: 8px;
+    user-select: none; pointer-events: none;
+  }
 
   #sub { color: #8b6f68; margin: 4px 0 16px; font-size: 14px;}
   #score, #timer { font-size: 18px; display: inline-block; margin: 6px 10px; padding: 6px 10px; background: #ffe7dc; border-radius: 10px; }
   #controls { margin-top: 8px; }
   button {
-    border: 0;
-    padding: 10px 16px;
-    border-radius: 12px;
-    background: #ffb8c6;
-    font-weight: 700;
-    cursor: pointer;
+    border: 0; padding: 10px 16px; border-radius: 12px;
+    background: #ffb8c6; font-weight: 700; cursor: pointer;
+    margin: 0 6px;
   }
-  #game-wrap { display: flex; justify-content: center; align-items: center; }
+
+  /* Hide UI until Start is clicked */
+  #score, #timer, #restart, #game-wrap { display: none; }
+  #game-wrap { display: none; justify-content: center; align-items: center; }
+
   #game {
     display: grid;
     grid-template-columns: repeat(3, 120px);
@@ -41,51 +38,35 @@ h1 .labubu-logo{
     margin-top: 16px;
   }
   .hole {
-    width: 120px;
-    height: 120px;
-    background: #e9f6ea;
-    border-radius: 16px;
-    position: relative;
-    overflow: hidden;
+    width: 120px; height: 120px; background: #e9f6ea; border-radius: 16px;
+    position: relative; overflow: hidden;
     box-shadow: inset 0 -10px #cfe8d2, 0 2px 0 rgba(0,0,0,0.04);
   }
   .lip {
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    height: 30px;
-    background: #d3eed7;
-    border-top-left-radius: 16px;
-    border-top-right-radius: 16px;
-    box-shadow: inset 0 8px rgba(255,255,255,0.5);
-    z-index: 3;
+    position: absolute; bottom: 0; left: 0; right: 0; height: 30px;
+    background: #d3eed7; border-top-left-radius: 16px; border-top-right-radius: 16px;
+    box-shadow: inset 0 8px rgba(255,255,255,0.5); z-index: 3;
   }
 
-  /* The pop-up “Bubu” container */
+  /* Pop-up figure (now uses transform for smooth animation) */
   .bubu {
-    width: 84px;
-    height: 84px;
-    border-radius: 24px;
-    position: absolute;
-    bottom: -100px;
-    left: 18px;
-    transition: bottom 0.18s ease-out, transform 0.08s;
-    cursor: pointer;
+    width: 84px; height: 84px;
+    position: absolute; left: 18px; bottom: 0;
+    --y: 90px;                       /* default: pushed down (hidden) */
+    transform: translateY(var(--y)); /* animate this var */
+    transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .08s;
+    cursor: pointer; display: grid; place-items: center;
+    background: transparent; overflow: hidden; z-index: 2; /* lip is z=3 */
     box-shadow: 0 4px 0 rgba(0,0,0,0.08);
-    background: transparent;
-    display: grid;
-    place-items: center;
-    overflow: hidden;
   }
-  /* The actual image */
+  .bubu.up { --y: -20px; }           /* peek above the lip */
+  .bubu.hit { transform: translateY(calc(var(--y) + 2px)) scale(.96); }
+
   .bubu img.art {
-    width: 100%;
-    height: 100%;
-    object-fit: contain; /* keeps aspect */
-    pointer-events: none; /* clicks go to the .bubu */
-    user-select: none;
+    width: 100%; height: 100%; object-fit: contain; pointer-events: none; user-select: none;
   }
 
-  /* Golden Bubu gets a glow */
+  /* Golden Bubu glow */
   .sparkle {
     box-shadow: 0 0 18px rgba(255,215,0,0.85), 0 6px 0 rgba(0,0,0,0.08);
     position: absolute;
@@ -102,39 +83,29 @@ h1 .labubu-logo{
   }
   .sparkle.up + .sparkles { opacity: 1; }
 
-  .up { bottom: 20px; }
-  .hit { transform: scale(0.95) translateY(2px); }
-
   #endcard {
     display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(255, 247, 240, 0.96);
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 12px;
+    position: fixed; inset: 0; background: rgba(255, 247, 240, 0.96);
+    align-items: center; justify-content: center; flex-direction: column; gap: 12px;
   }
   #endcard .card {
-    background: #fff;
-    border-radius: 16px;
-    padding: 20px 24px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
-    max-width: 320px;
+    background: #fff; border-radius: 16px; padding: 20px 24px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08); max-width: 320px;
   }
-  #game.hide-lips .lip {
-    display: none;
-  }
+  #game.hide-lips .lip { display: none; }
 </style>
 </head>
 <body>
   <h1>Whack-a-Bubu <img src="labubu1.png" alt="Labubu" class="labubu-logo"></h1>
   <div id="sub">Tap Bubu for +1 • Tap Golden Bubu for +5</div>
+
   <div id="controls">
     <span id="score">Score: 0</span>
     <span id="timer">Time: 30</span>
+    <button id="start">Start</button>
     <button id="restart">Restart</button>
   </div>
+
   <div id="game-wrap">
     <div id="game" arial-label="Whack-a-Bubu grid"></div>
   </div>
@@ -149,8 +120,10 @@ h1 .labubu-logo{
 
 <script>
   const game = document.getElementById("game");
+  const gameWrap = document.getElementById("game-wrap");
   const scoreDisplay = document.getElementById("score");
   const timerDisplay = document.getElementById("timer");
+  const startBtn = document.getElementById("start");
   const restartBtn = document.getElementById("restart");
   const endcard = document.getElementById("endcard");
   const playagain = document.getElementById("playagain");
@@ -165,19 +138,11 @@ h1 .labubu-logo{
   const GOLD_VISIBLE_MS = 500;
   const GOLD_CHANCE = 0.10;
 
-  // Image assets (add or remove as you like)
-  const NORMAL_IMAGES = [
-    "labubu1.png",
-    "labubu2.png",
-    "labubu3.png"
-  ];
+  const NORMAL_IMAGES = ["labubu1.png","labubu2.png","labubu3.png"];
   const GOLD_IMAGE = "labubu-gold.png";
 
-  // Preload for snappy swaps
-  [...NORMAL_IMAGES, GOLD_IMAGE].forEach(src => {
-    const img = new Image();
-    img.src = src;
-  });
+  // Preload
+  [...NORMAL_IMAGES, GOLD_IMAGE].forEach(src => { const img = new Image(); img.src = src; });
 
   function initGrid() {
     game.innerHTML = "";
@@ -191,11 +156,10 @@ h1 .labubu-logo{
       bubu.setAttribute("role","button");
       bubu.setAttribute("aria-label","Bubu");
 
-      // The face image
       const img = document.createElement("img");
       img.className = "art";
       img.alt = "Labubu";
-      img.src = randomNormalImg(); // default
+      img.src = randomNormalImg();
 
       const sparkles = document.createElement("div");
       sparkles.className = "sparkles";
@@ -206,16 +170,9 @@ h1 .labubu-logo{
       bubu.addEventListener("pointerdown", () => {
         if (!bubu.classList.contains("up")) return;
         bubu.classList.add("hit");
-        if (bubu.classList.contains("sparkle")) {
-          score += 5;
-        } else {
-          score += 1;
-        }
+        score += bubu.classList.contains("sparkle") ? 5 : 1;
         scoreDisplay.textContent = "Score: " + score;
-        // quick hide after hit
-        setTimeout(() => {
-          bubu.classList.remove("up", "hit", "sparkle");
-        }, 80);
+        setTimeout(() => { bubu.classList.remove("up", "hit", "sparkle"); }, 80);
       });
 
       bubu.appendChild(img);
@@ -230,31 +187,28 @@ h1 .labubu-logo{
   function randomNormalImg() {
     const idx = Math.floor(Math.random() * NORMAL_IMAGES.length);
     return NORMAL_IMAGES[idx];
-    }
+  }
 
   function popOne() {
-    // clear previous ups to avoid overlap chaos
+    // reset any active bubu
     holes.forEach(b => {
       b.classList.remove("up", "sparkle", "hit");
+      b.style.removeProperty('--y'); // reset transform var to default
     });
 
-    const index = Math.floor(Math.random() * holes.length);
-    const bubu = holes[index];
+    const bubu = holes[Math.floor(Math.random() * holes.length)];
     const img = bubu.querySelector("img.art");
 
     const isGold = Math.random() < GOLD_CHANCE;
     const visibleFor = isGold ? GOLD_VISIBLE_MS : NORMAL_VISIBLE_MS;
 
-    if (isGold) {
-      bubu.classList.add("sparkle");
-      img.src = GOLD_IMAGE;
-      img.alt = "Golden Labubu";
-    } else {
-      img.src = randomNormalImg();
-      img.alt = "Labubu";
-    }
+    if (isGold) { bubu.classList.add("sparkle"); img.src = GOLD_IMAGE; img.alt = "Golden Labubu"; }
+    else        { bubu.classList.remove("sparkle"); img.src = randomNormalImg(); img.alt = "Labubu"; }
 
-    bubu.classList.add("up");
+    // force reflow so the transform animates reliably
+    void bubu.offsetWidth;
+
+    bubu.classList.add("up"); // animate transform to pop up
 
     setTimeout(() => {
       bubu.classList.remove("up", "sparkle", "hit");
@@ -264,10 +218,7 @@ h1 .labubu-logo{
   function tickTimer() {
     timeLeft--;
     timerDisplay.textContent = "Time: " + timeLeft;
-    if (timeLeft <= 0) {
-      stopGame();
-      showEndcard();
-    }
+    if (timeLeft <= 0) { stopGame(); showEndcard(); }
   }
 
   function startGame() {
@@ -276,7 +227,8 @@ h1 .labubu-logo{
     scoreDisplay.textContent = "Score: " + score;
     timerDisplay.textContent = "Time: " + timeLeft;
     endcard.style.display = "none";
-    game.classList.remove("hide-lips"); // Remove class to show lips
+    game.classList.remove("hide-lips");
+
     clearInterval(popInterval);
     clearInterval(timerInterval);
     popInterval = setInterval(popOne, POP_EVERY_MS);
@@ -291,14 +243,39 @@ h1 .labubu-logo{
   function showEndcard() {
     document.getElementById("finalscore").textContent = "Final Score: " + score;
     endcard.style.display = "flex";
-    game.classList.add("hide-lips"); // Add class to hide lips
+    game.classList.add("hide-lips");
+    // show Start again for a fresh round (optional)
+    startBtn.style.display = "inline-block";
   }
 
-  restartBtn.addEventListener("click", startGame);
-  playagain.addEventListener("click", startGame);
+  // Start button flow
+  startBtn.addEventListener("click", () => {
+    startBtn.style.display = "none";
+    scoreDisplay.style.display = "inline-block";
+    timerDisplay.style.display = "inline-block";
+    restartBtn.style.display = "inline-block";
+    document.getElementById("game-wrap").style.display = "flex";
+    startGame();
+  });
 
+  // Restart
+  restartBtn.addEventListener("click", () => {
+    startBtn.style.display = "none";
+    endcard.style.display = "none";
+    document.getElementById("game-wrap").style.display = "flex";
+    startGame();
+  });
+
+  // Endcard button
+  playagain.addEventListener("click", () => {
+    endcard.style.display = "none";
+    startBtn.style.display = "none";
+    document.getElementById("game-wrap").style.display = "flex";
+    startGame();
+  });
+
+  // Init grid; wait for Start
   initGrid();
-  startGame();
 </script>
 </body>
 </html>
