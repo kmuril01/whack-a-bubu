@@ -125,6 +125,9 @@ h1 .labubu-logo{
   #game.hide-lips .lip {
     display: none;
   }
+  #score, #timer, #restart, #game-wrap { display: none; }
+#game-wrap { justify-content: center; align-items: center; }
+
 </style>
 </head>
 <body>
@@ -145,6 +148,18 @@ h1 .labubu-logo{
       <p id="finalscore">Final Score: 0</p>
       <button id="playagain">Play again</button>
     </div>
+
+    <div id="controls">
+  <span id="score">Score: 0</span>
+  <span id="timer">Time: 30</span>
+  <button id="start">Start</button>
+  <button id="restart">Restart</button>
+</div>
+
+<div id="game-wrap">
+  <div id="game"></div>
+</div>
+
   </div>
 
 <script>
